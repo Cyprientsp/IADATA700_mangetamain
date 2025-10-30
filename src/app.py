@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 
 import streamlit as st
 
@@ -10,6 +11,13 @@ from components.popularity_analysis_page import PopularityAnalysisPage
 from core.data_explorer import DataExplorer
 from core.data_loader import DataLoader
 from core.logger import get_logger, setup_logging
+
+# Try to import data download module
+try:
+    from download_data import ensure_data_files
+    HAS_DOWNLOAD_MODULE = True
+except ImportError:
+    HAS_DOWNLOAD_MODULE = False
 
 DEFAULT_RECIPES = Path("data/RAW_recipes.csv")
 DEFAULT_INTERACTIONS = Path("data/RAW_interactions.csv")
@@ -33,6 +41,45 @@ class App:
         setup_logging(level="WARNING")  # Less verbose for better performance
         self.logger = get_logger()
         self.logger.info("Mangetamain application starting")
+        
+        # Ensure data files are available on startup
+        self._ensure_data_files_on_startup()
+
+    def _ensure_data_files_on_startup(self):
+        """
+        Vérifie et télécharge les fichiers de données au démarrage.
+        Cette méthode s'exécute une seule fois via @st.cache_resource.
+        """
+        @st.cache_resource
+        def check_and_download_data():
+            """Fonction cachée pour éviter les téléchargements répétés."""
+            recipes_exists = DEFAULT_RECIPES.exists()
+            interactions_exists = DEFAULT_INTERACTIONS.exists()
+            
+            if recipes_exists and interactions_exists:
+                self.logger.info("✅ All data files are present")
+                return True
+            
+            if not HAS_DOWNLOAD_MODULE:
+                self.logger.warning("⚠️ download_data module not found")
+                return False
+            
+            self.logger.info("📥 Some data files are missing, attempting to download from S3...")
+            
+            try:
+                # Show a spinner while downloading
+                with st.spinner("📥 Téléchargement des données... Cela peut prendre quelques minutes..."):
+                    ensure_data_files()
+                    self.logger.info("✅ Data files downloaded successfully")
+                    return True
+            except Exception as e:
+                self.logger.error(f"❌ Error downloading data files: {e}")
+                st.error(f"⚠️ Erreur lors du téléchargement des données: {e}")
+                st.info("💡 Vous pouvez uploader les fichiers CSV manuellement depuis la page d'accueil")
+                return False
+        
+        # Appel de la fonction cachée
+        check_and_download_data()
 
     def _sidebar(self) -> dict:
         """Configuration de la sidebar avec sélection des pages et datasets."""
