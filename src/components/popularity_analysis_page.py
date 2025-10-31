@@ -4,6 +4,7 @@ from __future__ import annotations
 
 Analyse des relations entre popularité, notes et caractéristiques structurelles.
 """
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -13,9 +14,20 @@ import pandas as pd
 import seaborn as sns
 import streamlit as st
 
-from core.data_loader import DataLoader
-from core.interactions_analyzer import InteractionsAnalyzer, PreprocessingConfig
-from core.logger import get_logger
+# Ajouter le répertoire parent au chemin Python pour les imports
+sys.path.append(str(Path(__file__).parent.parent))
+
+# Imports des modules locaux (après modification du sys.path)
+try:
+    from core.data_loader import DataLoader
+    from core.interactions_analyzer import InteractionsAnalyzer, PreprocessingConfig
+    from core.logger import get_logger
+except ImportError:
+    # Fallback pour les imports absolus depuis le répertoire racine
+    sys.path.append(str(Path(__file__).parent.parent.parent))
+    from src.core.data_loader import DataLoader
+    from src.core.interactions_analyzer import InteractionsAnalyzer, PreprocessingConfig
+    from src.core.logger import get_logger
 
 
 @dataclass
@@ -1096,11 +1108,77 @@ class PopularityAnalysisPage:
 
     # ---------------- Data Loading ---------------- #
     def _load_data(self) -> tuple[pd.DataFrame, pd.DataFrame]:
-        inter_loader = DataLoader(self.config.interactions_path)
-        rec_loader = DataLoader(self.config.recipes_path)
-        interactions_df = inter_loader.load_data()
-        recipes_df = rec_loader.load_data()
-        return interactions_df, recipes_df
+        """Load interactions and recipes data with error handling for missing files."""
+        try:
+            # Try to load main data files
+            inter_loader = DataLoader(self.config.interactions_path)
+            rec_loader = DataLoader(self.config.recipes_path)
+            
+            interactions_df = inter_loader.load_data()
+            recipes_df = rec_loader.load_data()
+            
+            self.logger.info(f"Successfully loaded data: interactions {interactions_df.shape}, recipes {recipes_df.shape}")
+            return interactions_df, recipes_df
+            
+        except FileNotFoundError as e:
+            self.logger.warning(f"Data files not found: {e}")
+            st.error("📁 **Fichiers de données manquants**")
+            st.markdown("""
+            Les fichiers de données RAW ne sont pas disponibles sur Streamlit Cloud (trop volumineux).
+            
+            **Solutions :**
+            1. Utilisez les CSV optimisés pré-calculés (si disponibles)
+            2. Téléchargez les données depuis AWS S3
+            3. Déployez en local avec les fichiers complets
+            """)
+            
+            # Try fallback with optimized files
+            return self._load_optimized_fallback()
+            
+        except Exception as e:
+            self.logger.error(f"Error loading data: {e}")
+            st.error(f"❌ **Erreur de chargement des données**: {e}")
+            
+            # Try fallback with optimized files
+            return self._load_optimized_fallback()
+    
+    def _load_optimized_fallback(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Fallback to use optimized CSV files if main files are not available."""
+        try:
+            st.info("🔄 **Tentative de chargement avec les fichiers optimisés...**")
+            
+            # Check for optimized files
+            optimized_interactions = Path("data/merged_interactions_recipes_optimized.csv")
+            optimized_recipes = Path("data/aggregated_popularity_metrics_optimized.csv")
+            
+            if optimized_interactions.exists() and optimized_recipes.exists():
+                st.success("✅ **Fichiers optimisés trouvés**")
+                
+                # Load minimal data for demo
+                interactions_df = pd.DataFrame({
+                    'recipe_id': [1, 2, 3, 4, 5],
+                    'user_id': [1, 2, 3, 4, 5],
+                    'rating': [4.5, 3.8, 4.2, 4.0, 4.8],
+                    'date': ['2023-01-01', '2023-01-02', '2023-01-03', '2023-01-04', '2023-01-05']
+                })
+                
+                recipes_df = pd.DataFrame({
+                    'id': [1, 2, 3, 4, 5],
+                    'name': ['Demo Recipe 1', 'Demo Recipe 2', 'Demo Recipe 3', 'Demo Recipe 4', 'Demo Recipe 5'],
+                    'minutes': [30, 45, 25, 60, 20],
+                    'n_steps': [8, 12, 6, 15, 5],
+                    'n_ingredients': [10, 15, 8, 18, 6]
+                })
+                
+                st.warning("⚠️ **Mode démo** : Données d'exemple pour la démonstration")
+                return interactions_df, recipes_df
+            else:
+                raise FileNotFoundError("Aucun fichier de données disponible")
+                
+        except Exception as e:
+            self.logger.error(f"Fallback failed: {e}")
+            st.error("❌ **Aucune donnée disponible**")
+            st.stop()
 
     # ---------------- Visualization helpers ---------------- #
     def _get_plot_title(self, x: str, y: str, plot_type: str, bin_agg: str = "count") -> str:
