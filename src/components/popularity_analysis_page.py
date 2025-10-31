@@ -47,18 +47,12 @@ class PopularityAnalysisPage:
     # ---------------- Sidebar ---------------- #
     def _sidebar(self):
         st.sidebar.markdown("### 📊 Visualisation")
-        plot_type = st.sidebar.selectbox(
-            "Type de graphique",
-            ["Scatter", "Histogram"],
-            help="Scatter: points individuels, Histogram: nombre d'observations par bins",
-        )
-
-        if plot_type == "Histogram":
-            n_bins = st.sidebar.slider("Nombre de bins", 10, 50, 20)
-            bin_agg = "count"  # Fixé à count seulement
-        else:
-            n_bins = 20
-            bin_agg = "count"
+        # Force histogram mode for Streamlit Cloud compatibility
+        plot_type = "Histogram"
+        st.sidebar.info("🔧 **Mode histogramme uniquement** pour compatibilité Streamlit Cloud")
+        
+        n_bins = st.sidebar.slider("Nombre de bins", 10, 50, 30)
+        bin_agg = "count"  # Fixé à count seulement
 
         alpha = st.sidebar.slider("Transparence", 0.1, 1.0, 0.6, 0.1)
 
@@ -295,6 +289,10 @@ class PopularityAnalysisPage:
         pour évaluer la corrélation entre qualité perçue et engagement utilisateur.
 
         **Métrique :** Corrélation entre note moyenne et nombre d'interactions par recette.
+        
+        📊 **Mode histogramme** : Les graphiques sont en mode histogramme uniquement pour optimiser 
+        les performances sur Streamlit Cloud. Les histogrammes révèlent les distributions et 
+        concentrations de données de manière plus efficace que les scatter plots.
         """
         )
 
@@ -314,9 +312,18 @@ class PopularityAnalysisPage:
             # Analyse des résultats
             st.markdown(
                 """
+            **🔍 Lecture de l'histogramme :**
+            
+            Les histogrammes révèlent la distribution des données de manière optimisée. Chaque barre
+            représente le nombre de recettes dans une plage de valeurs donnée, permettant d'identifier :
+            
+            - **Concentrations** : Où se situent la plupart des recettes
+            - **Outliers** : Zones avec peu de recettes mais potentiellement intéressantes
+            - **Patterns** : Tendances générales de la relation qualité-popularité
+            
             Cette distribution non-linéaire indique que la popularité s'organise
-            en segments distincts plutôt qu'en progression continue. Cependant une grande majorité des recettes possède une bonne note.
-            Les utilisateurs sont peut-être bienveillant entre eux ou les recettes sont peut-être toutes délicieuses.
+            en segments distincts plutôt qu'en progression continue. Une grande majorité des recettes possède une bonne note.
+            Les utilisateurs sont peut-être bienveillants entre eux ou les recettes sont peut-être toutes délicieuses.
             Nous allons donc plutôt nous focaliser dans la suite sur l'étude du nombre de fois où une recette a été faite évaluant donc
             sa popularité pour qualifier son succés avec un autre point de vue que la note moyenne. Quand nous parlerons du nombre d'interactions,
             nous parlerons du nombre de fois où la recette a été faite.
@@ -1276,22 +1283,20 @@ class PopularityAnalysisPage:
         y: str,
         size: str | None = None,
         title: str = "",
-        plot_type: str = "Scatter",
-        n_bins: int = 20,
+        plot_type: str = "Histogram",  # Force histogram mode
+        n_bins: int = 30,
         bin_agg: str = "count",
         alpha: float = 0.6,
     ):
-        """Create plot based on selected type with improved visualization."""
+        """Create histogram plot only for Streamlit Cloud compatibility."""
         fig, ax = plt.subplots(figsize=(8, 6))
 
-        if plot_type == "Scatter":
-            self._scatter_plot(data, x, y, size, ax, alpha)
-        elif plot_type == "Histogram":
-            self._histogram_plot(data, x, y, size, ax, n_bins, bin_agg)
+        # Always use histogram for better performance
+        self._histogram_plot(data, x, y, size, ax, n_bins, bin_agg)
 
         # Utiliser un titre prédéfini si aucun titre n'est fourni
         if not title:
-            title = self._get_plot_title(x, y, plot_type, bin_agg)
+            title = self._get_plot_title(x, y, "Histogram", bin_agg)
 
         ax.set_title(title, fontsize=14, fontweight="bold")
 
@@ -1325,23 +1330,21 @@ class PopularityAnalysisPage:
         y: str,
         size: str | None = None,
         title: str = "",
-        plot_type: str = "Scatter",
-        n_bins: int = 20,
+        plot_type: str = "Histogram",  # Force histogram mode
+        n_bins: int = 30,
         bin_agg: str = "count",
         alpha: float = 0.6,
     ):
-        """Create compact plot for steps 1 and 3 - smaller size for better screen fit."""
+        """Create compact histogram plot only for Streamlit Cloud compatibility."""
         # Taille compacte pour s'adapter à l'écran
         fig, ax = plt.subplots(figsize=(10, 5))
 
-        if plot_type == "Scatter":
-            self._scatter_plot(data, x, y, size, ax, alpha)
-        elif plot_type == "Histogram":
-            self._histogram_plot(data, x, y, size, ax, n_bins, bin_agg)
+        # Always use histogram for better performance
+        self._histogram_plot(data, x, y, size, ax, n_bins, bin_agg)
 
         # Utiliser un titre prédéfini si aucun titre n'est fourni
         if not title:
-            title = self._get_plot_title(x, y, plot_type, bin_agg)
+            title = self._get_plot_title(x, y, "Histogram", bin_agg)
 
         ax.set_title(title, fontsize=12, fontweight="bold")
 
