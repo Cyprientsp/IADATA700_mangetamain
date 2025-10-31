@@ -38,11 +38,9 @@ class PopularityAnalysisPage:
         # Force histogram mode for Streamlit Cloud compatibility
         plot_type = "Histogram"
         st.sidebar.info("🔧 **Mode histogramme uniquement** pour compatibilité Streamlit Cloud")
-        
+
         n_bins = st.sidebar.slider("Nombre de bins", 10, 50, 30)
         bin_agg = "count"  # Fixé à count seulement
-
-        alpha = st.sidebar.slider("Transparence", 0.1, 1.0, 0.6, 0.1)
 
         # Preprocessing section
         st.sidebar.markdown("### ⚙️ Preprocessing optimisé")
@@ -52,7 +50,6 @@ class PopularityAnalysisPage:
             "plot_type": plot_type,
             "n_bins": n_bins,
             "bin_agg": bin_agg,
-            "alpha": alpha,
             "outlier_threshold": 5.0,  # Fixed optimal value for test compatibility
         }
 
@@ -263,7 +260,6 @@ class PopularityAnalysisPage:
         plot_type: str,
         n_bins: int,
         bin_agg: str,
-        alpha: float,
     ):
         """Render step 1: Quality-popularity relationship analysis."""
         st.markdown("---")
@@ -277,9 +273,9 @@ class PopularityAnalysisPage:
         pour évaluer la corrélation entre qualité perçue et engagement utilisateur.
 
         **Métrique :** Corrélation entre note moyenne et nombre d'interactions par recette.
-        
-        📊 **Mode histogramme** : Les graphiques sont en mode histogramme uniquement pour optimiser 
-        les performances sur Streamlit Cloud. Les histogrammes révèlent les distributions et 
+
+        📊 **Mode histogramme** : Les graphiques sont en mode histogramme uniquement pour optimiser
+        les performances sur Streamlit Cloud. Les histogrammes révèlent les distributions et
         concentrations de données de manière plus efficace que les scatter plots.
         """
         )
@@ -293,7 +289,6 @@ class PopularityAnalysisPage:
                 plot_type=plot_type,
                 n_bins=n_bins,
                 bin_agg=bin_agg,
-                alpha=alpha,
             )
             st.pyplot(fig1)
 
@@ -301,14 +296,14 @@ class PopularityAnalysisPage:
             st.markdown(
                 """
             **🔍 Lecture de l'histogramme :**
-            
+
             Les histogrammes révèlent la distribution des données de manière optimisée. Chaque barre
             représente le nombre de recettes dans une plage de valeurs donnée, permettant d'identifier :
-            
+
             - **Concentrations** : Où se situent la plupart des recettes
             - **Outliers** : Zones avec peu de recettes mais potentiellement intéressantes
             - **Patterns** : Tendances générales de la relation qualité-popularité
-            
+
             Cette distribution non-linéaire indique que la popularité s'organise
             en segments distincts plutôt qu'en progression continue. Une grande majorité des recettes possède une bonne note.
             Les utilisateurs sont peut-être bienveillants entre eux ou les recettes sont peut-être toutes délicieuses.
@@ -385,7 +380,6 @@ class PopularityAnalysisPage:
         plot_type: str,
         n_bins: int,
         bin_agg: str,
-        alpha: float,
         pop_rating,
     ):
         """Render step 3: Technical factors influence analysis."""
@@ -472,7 +466,6 @@ class PopularityAnalysisPage:
                             plot_type=plot_type,
                             n_bins=n_bins,
                             bin_agg=bin_agg,
-                            alpha=alpha,
                         )
                     else:
                         fig = self._create_compact_plot(
@@ -482,7 +475,6 @@ class PopularityAnalysisPage:
                             plot_type=plot_type,
                             n_bins=n_bins,
                             bin_agg=bin_agg,
-                            alpha=alpha,
                         )
                     st.pyplot(fig)
 
@@ -1208,7 +1200,6 @@ class PopularityAnalysisPage:
         plot_type: str = "Histogram",  # Force histogram mode
         n_bins: int = 30,
         bin_agg: str = "count",
-        alpha: float = 0.6,
     ):
         """Create histogram plot only for Streamlit Cloud compatibility."""
         fig, ax = plt.subplots(figsize=(8, 6))
@@ -1255,7 +1246,6 @@ class PopularityAnalysisPage:
         plot_type: str = "Histogram",  # Force histogram mode
         n_bins: int = 30,
         bin_agg: str = "count",
-        alpha: float = 0.6,
     ):
         """Create compact histogram plot only for Streamlit Cloud compatibility."""
         # Taille compacte pour s'adapter à l'écran
@@ -1546,7 +1536,6 @@ class PopularityAnalysisPage:
         plot_type = params["plot_type"]
         n_bins = params["n_bins"]
         bin_agg = params["bin_agg"]
-        alpha = params["alpha"]
 
         with st.spinner("Chargement des données..."):
             self.logger.info("Loading data for popularity analysis")
@@ -1627,10 +1616,10 @@ class PopularityAnalysisPage:
         st.dataframe(agg.head(20))
 
         # Execute the 4 analysis steps using dedicated render methods
-        pop_rating = self._render_step_1(analyzer, plot_type, n_bins, bin_agg, alpha)
+        pop_rating = self._render_step_1(analyzer, plot_type, n_bins, bin_agg)
         if pop_rating is not None:
             self._render_step_2(analyzer, pop_rating)
-        self._render_step_3(analyzer, agg, plot_type, n_bins, bin_agg, alpha, pop_rating)
+        self._render_step_3(analyzer, agg, plot_type, n_bins, bin_agg, pop_rating)
         self._render_viral_recipe_analysis(analyzer, agg, interactions_df, recipes_df)
 
         # Synthèse et conclusions
@@ -1663,5 +1652,5 @@ class PopularityAnalysisPage:
 
         st.markdown("---")
         st.caption(
-            "💡 **Configuration** : Ajustez les paramètres de preprocessing et visualisation pour explorer différentes perspectives analytiques."
+            "💡 **Remarque** : Le scatter plot n'est plus disponible afin d'éviter de dépasser les ressources de streamlit cloud"
         )
